@@ -6,6 +6,7 @@ Desired format:
 '''
 import numpy as np
 import json
+import matplotlib
 import matplotlib.pyplot as plt
 import sys
 import os
@@ -57,10 +58,13 @@ for thread in threadBlocksMap:
 
 data = np.genfromtxt(csvFilename, dtype='str', delimiter=",")
 
+matplotlib.rcParams.update({'font.size': 6})
+
 threads = data[:,0]
 threadsUnique = np.unique(threads)
 
-os.makedirs("out", exist_ok=True)
+resultFolder = f'{filename}_results'
+os.makedirs(resultFolder, exist_ok=True)
 
 for thread in threadsUnique:
 	print(f'  Processing blocks for {thread}')
@@ -68,14 +72,16 @@ for thread in threadsUnique:
 	blockCounts = Counter(thread_blocks)
 	dataframe = pandas.DataFrame.from_dict(blockCounts, orient='index')
 	fig = dataframe.plot(kind='bar').get_figure()
-	fig.savefig(f'out/{filename}_{thread}_frequency.png', bbox_inches='tight')
+	fig.suptitle(f'Call frequency for {thread}')
+	fig.savefig(f'{resultFolder}/{filename}_{thread}_frequency.png', bbox_inches='tight')
 	plt.close()
 
 blocks = data[:,1]
 blockCounts = Counter(blocks)
 dataframe = pandas.DataFrame.from_dict(blockCounts, orient='index')
 fig = dataframe.plot(kind='bar').get_figure()
-fig.savefig(f'out/{filename}_frequency.png', bbox_inches='tight')
+fig.suptitle("Call frequency")
+fig.savefig(f'{resultFolder}/{filename}_frequency.png', bbox_inches='tight')
 plt.close()
 
 '''Histograms of block durations'''
@@ -84,5 +90,6 @@ for block in np.unique(blocks):
 	durations = data[data[:,1] == block][:,3]
 	durationsInSeconds = [float(x) / 1000000 for x in durations]
 	plt.hist(durationsInSeconds, bins=10)
-	plt.savefig(f'out/{filename}_{sanitizedName}_hist.png', bbox_inches='tight')
+	plt.title(sanitizedName)
+	plt.savefig(f'{resultFolder}/{filename}_{sanitizedName}_hist.png', bbox_inches='tight')
 	plt.close()
