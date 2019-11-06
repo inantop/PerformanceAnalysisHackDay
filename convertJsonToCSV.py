@@ -31,10 +31,11 @@ for block in data["blockDescriptors"]:
 def processChildrenRecursive(children):
 	blocks = []
 	for key in children:
-		if key == "children":
-			blocks.append(processChildrenRecursive(key))
+		if "children" in key:
+			blocks = blocks + processChildrenRecursive(key["children"])
 		else:
-			blocks.append({"name":key["name"], "start":key["start"], "duration":(key["stop"] - key["start"]), "color":(idColorMap[key["descriptor"]])})
+			sanitizedName = "".join(x for x in key["name"] if x.isalnum())
+			blocks.append({"name":sanitizedName,"start":key["start"], "duration":(key["stop"] - key["start"]), "color":(idColorMap[key["descriptor"]])})
 	return blocks
 
 '''Building dictionary of thread names to blocks'''
@@ -59,16 +60,29 @@ data = np.genfromtxt(csvFilename, dtype='str', delimiter=",")
 threads = data[:,0]
 threadsUnique = np.unique(threads)
 
+os.makedirs("out", exist_ok=True)
+
 for thread in threadsUnique:
 	print(f'  Processing blocks for {thread}')
 	thread_blocks = data[data[:,0] == thread][:,1]
 	blockCounts = Counter(thread_blocks)
 	dataframe = pandas.DataFrame.from_dict(blockCounts, orient='index')
 	fig = dataframe.plot(kind='bar').get_figure()
-	fig.savefig(f'{filename}_{thread}_frequency.png', bbox_inches='tight')
+	fig.savefig(f'out/{filename}_{thread}_frequency.png', bbox_inches='tight')
+	plt.close()
 
 blocks = data[:,1]
 blockCounts = Counter(blocks)
 dataframe = pandas.DataFrame.from_dict(blockCounts, orient='index')
 fig = dataframe.plot(kind='bar').get_figure()
-fig.savefig(f'{filename}_frequency.png', bbox_inches='tight')
+fig.savefig(f'out/{filename}_frequency.png', bbox_inches='tight')
+plt.close()
+
+'''Histograms of block durations'''
+for block in np.unique(blocks):
+	sanitizedName = "".join(x for x in block if x.isalnum())
+	durations = data[data[:,1] == block][:,3]
+	durationsInSeconds = [float(x) / 1000000 for x in durations]
+	plt.hist(durationsInSeconds, bins=10)
+	plt.savefig(f'out/{filename}_{sanitizedName}_hist.png', bbox_inches='tight')
+	plt.close()
